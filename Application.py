@@ -269,33 +269,15 @@ GDRIVE_FILE_ID = "1g-FaNVQhPARRPFZehWT02KzeYi7hUOwu"
 
 @st.cache_data(show_spinner=False)
 def load_from_gdrive(file_id):
-    import requests, re
-    session = requests.Session()
-
-    # Step 1: initial request
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    response = session.get(url, stream=True)
-
-    # Step 2: check cookies for confirmation token
-    confirm_token = None
-    for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
-            confirm_token = value
-            break
-
-    # Step 3: also scan HTML body for token
-    if confirm_token is None:
-        content_str = response.content.decode('utf-8', errors='ignore')
-        match = re.search(r'confirm=([0-9A-Za-z_\-]+)', content_str)
-        if match:
-            confirm_token = match.group(1)
-
-    # Step 4: re-request with confirmation if needed
-    if confirm_token:
-        url = f"https://drive.google.com/uc?export=download&confirm={confirm_token}&id={file_id}"
-        response = session.get(url, stream=True)
-
-    return response.content
+    import gdown, os, tempfile
+    url = f"https://drive.google.com/uc?id={file_id}"
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
+        tmp_path = tmp.name
+    gdown.download(url, tmp_path, quiet=True, fuzzy=True)
+    with open(tmp_path, 'rb') as f:
+        data = f.read()
+    os.unlink(tmp_path)
+    return data
 
 # ── Hero ──
 st.markdown("""
